@@ -1,51 +1,113 @@
 # Task1-demo
 Automate Code Deployment Using CI/CD Pipeline (GitHub Actions)
 
-Step-by-Step Guide to Install Netdata Using Docker
+Step-by-Step CI/CD Setup
 
-1. Install Docker (if not already installed)
+1. Project Structure (Example)
 
-Follow official instructions:
-https://docs.docker.com/get-docker/
+Your nodejs-demo-app should have:
 
-2. Pull and Run Netdata Container
+nodejs-demo-app/
+├── Dockerfile
+├── .github/
+│   └── workflows/
+│       └── ci-cd.yml
+├── package.json
+├── app.js (or server.js)
+└── ...
 
-docker run -d \
-  --name=netdata \
-  -p 19999:19999 \
-  -v netdataconfig:/etc/netdata \
-  -v netdatalib:/var/lib/netdata \
-  -v netdatacache:/var/cache/netdata \
-  -v /etc/passwd:/host/etc/passwd:ro \
-  -v /etc/group:/host/etc/group:ro \
-  -v /proc:/host/proc:ro \
-  -v /sys:/host/sys:ro \
-  -v /etc/os-release:/host/etc/os-release:ro \
-  --cap-add SYS_PTRACE \
-  --security-opt apparmor=unconfined \
-  netdata/netdata
+2. Dockerfile Example
 
-> This command runs Netdata on port 19999. It mounts necessary volumes for system metrics access.
+# Use Node.js official image
+FROM node:18
 
+# Create app directory
+WORKDIR /usr/src/app
 
+# Copy package files and install
+COPY package*.json ./
+RUN npm install
 
-3. Access the Netdata Dashboard
+# Copy rest of the app
+COPY . .
 
-Open your browser and go to:
-http://localhost:19999
+# Expose port
+EXPOSE 3000
 
-You should see a live, interactive dashboard showing:
-
-CPU, RAM, Disk usage
-
-Network traffic
-
-Application-specific metrics
-
-Docker container stats (if Docker plugin is active)
+# Run the app
+CMD ["node", "app.js"]
 
 
-4. Take a Screenshot
+3. GitHub Actions Workflow File: .github/workflows/ci-cd.yml
 
-Once the dashboard is up and
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run tests (if you have any)
+      run: npm test
+
+    - name: Build Docker image
+      run: docker build -t nodejs-demo-app .
+
+    - name: Docker Hub Login
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Tag and Push Docker image
+      run: |
+        docker tag nodejs-demo-app ${{ secrets.DOCKER_USERNAME }}/nodejs-demo-app:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/nodejs-demo-app:latest
+
+
+4. Setup Secrets in GitHub
+
+Go to your repository Settings > Secrets and variables > Actions > New repository secret and add:
+
+DOCKER_USERNAME – Your Docker Hub username
+
+DOCKER_PASSWORD – Your Docker Hub password or access token
+
+
+5. Optional Deployment Targets
+
+You can expand this to auto-deploy to services like:
+
+Render
+
+Heroku
+
+AWS ECS
+
+DigitalOcean App Platform
+
+VPS (via SSH)
+
+
+
+
 
